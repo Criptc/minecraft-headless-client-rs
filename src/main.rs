@@ -124,8 +124,6 @@ pub fn get_status(ip: String, port: u16){
 pub fn offline_login(ip: String, port: u16){
     let mut compression = false;
     let mut compression_size = 0;
-    //let mut encryption = false; // todo: check if encryption is only active on online mode servers
-
     let mut sock = connect(&ip, &(port as u32));
 
     send(&mut sock, packets::handshake(763, ip, port, "login".to_string()).as_slice());
@@ -139,12 +137,9 @@ pub fn offline_login(ip: String, port: u16){
             packet = decompress(packet);
         }
         if id == 0x0{
-            println!("disconnected, reason: {}", packets::login_disconnect(&packet));
-            exit(0);
+            panic!("disconnected, reason: {}", packets::login_disconnect(&packet));
         } else if id == 0x1{ // encryption request
-            // todo: add encryption to login
-            println!("Error, no support for encryption at this time");
-            exit(1);
+            panic!("server must be using online mode or has chat reporting enabled due to requesting for encryption");
         } else if id == 0x2 { // login success
             println!("username: {}", packets::login_success(&packet));
             break;
@@ -157,6 +152,28 @@ pub fn offline_login(ip: String, port: u16){
         }
     }
 
+    let play_send = |sock: &mut TcpStream, packet: Vec<u8>| { // a simple little function to reduce the amount of code needed to send a packet
+        let mut pack: Vec<u8>;
+        if packet.len() > compression_size as usize && compression {
+            pack = compress(packet);
+        } else {
+            pack = packet;
+        }
+
+        send(sock, pack.as_slice());
+    };
+
+    let play_receive = |sock: &mut TcpStream| -> (Vec<u8>, i32) { // same perpous as play_send, to reduce amount of code needed to be writen
+        let (mut packet, id) = read_packet(sock);
+        if compression {
+            packet = decompress(packet);
+        }
+        (packet, id)
+    };
+
+    loop{ // main play mode loop
+
+    }
 }
 
 fn main() {

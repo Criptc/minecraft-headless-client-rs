@@ -11,6 +11,12 @@ use std::{
 };
 use flate2;
 
+/*
+error, data can't be empty [pub login_disconnect]
+error, data can't be empty [pub login_disconnect]
+error, data can't be empty [pub login_disconnect]
+*/
+
 fn compress(data: Vec<u8>) -> Vec<u8>{
     let mut buf: Vec<u8> = Vec::new();
     let mut compresser = flate2::Compress::new(flate2::Compression::fast(), true);
@@ -66,13 +72,22 @@ fn varint_from_stream(stream: &mut TcpStream) -> i32{
 fn read_packet(sock: &mut TcpStream) -> (Vec<u8>, i32){
     let length: usize = varint_from_stream(sock) as usize;
     let mut buff: Vec<u8> = vec![0u8; length];
-    match sock.read(buff.as_mut_slice()){
-        Ok(_) => {}
+
+    let mut received_size = match sock.read(buff.as_mut_slice()){
+        Ok(t) => {t}
         Err(err) => {
-            println!("failed reading, err: {}", err);
-            exit(1);
+            panic!("failed reading, err: {}", err);
         }
     };
+    while received_size != length{
+        received_size += match sock.read(buff.as_mut_slice()){
+            Ok(t) => {t}
+            Err(err) => {
+                panic!("failed reading, err: {}", err);
+            }
+        };
+    }
+
     let (id, size) = packets::varint_read(&buff);
     buff = buff[size..buff.len()].to_vec();
     (buff, id)
@@ -116,9 +131,9 @@ pub fn offline_login(ip: String, port: u16){
     send(&mut sock, packets::handshake(763, ip, port, "login".to_string()).as_slice());
     send(&mut sock, packets::login_start("rust_bot".to_string()).as_slice());
 
-
     loop{
         let (mut packet, id) = read_packet(&mut sock);
+        println!("id: {}", id);
 
         if compression{
             packet = decompress(packet);
@@ -130,14 +145,18 @@ pub fn offline_login(ip: String, port: u16){
             // todo: add encryption to login
             println!("Error, no support for encryption at this time");
             exit(1);
+        } else if id == 0x2 { // login success
+            println!("username: {}", packets::login_success(&packet));
+            break;
         } else if id == 0x3 { // set compression
             compression = true;
             compression_size = packets::compression_request(&packet);
-        } else if id == 0x4 { // login success
-            println!("username: {}", packets::login_success(&packet));
-            break;
+        } else if id == 0x4 { // login plugin request (custom login flow)
+            println!("Warning: server tried sending a custom login request");
+            send(&mut sock, packets::status_request().as_slice()); // re using the empty packet from status_request, if you want you can add support for different custom login flows
         }
     }
+
 }
 
 fn main() {

@@ -137,7 +137,7 @@ pub fn login_start(username: String) -> Vec<u8>{
 pub fn login_success(packet: &Vec<u8>) -> String{
     let mut data = packet[16..packet.len()].to_vec(); // skips uuid
 
-    let (username, size) = read_string(packet);
+    let (username, size) = read_string(&data);
     data = data[size as usize..data.len()].to_vec();
 
     let (props, size) = varint_read(&data);

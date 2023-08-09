@@ -1,21 +1,21 @@
-mod packets;
-use std::{
-    net::{
-        TcpStream
+use {
+    flate2,
+    std::{
+        net::{
+            TcpStream
+        },
+        io::{
+            Write,
+            Read,
+        },
+        process::exit,
     },
-    io::{
-        Write,
-        Read
-    },
-    process::exit
+    crate::packets::{
+        *,
+        varint_read,
+        varint_write
+    }
 };
-use flate2;
-
-/*
-error, data can't be empty [pub login_disconnect]
-error, data can't be empty [pub login_disconnect]
-error, data can't be empty [pub login_disconnect]
-*/
 
 fn compress(data: Vec<u8>) -> Vec<u8>{
     let mut buf: Vec<u8> = Vec::new();
@@ -88,7 +88,7 @@ fn read_packet(sock: &mut TcpStream) -> (Vec<u8>, i32){
         };
     }
 
-    let (id, size) = packets::varint_read(&buff);
+    let (id, size) = varint_read(&buff);
     buff = buff[size..buff.len()].to_vec();
     (buff, id)
 }
@@ -154,10 +154,28 @@ pub fn offline_login(ip: String, port: u16){
 
     let play_send = |sock: &mut TcpStream, packet: Vec<u8>| { // a simple little function to reduce the amount of code needed to send a packet
         let mut pack: Vec<u8>;
-        if packet.len() > compression_size as usize && compression {
-            pack = compress(packet);
+        if packet.len() >= compression_size as usize && compression {
+            let mut buf: Vec<u8> = Vec::new();
+
+            let uncompressed_size = varint_write(packet.len() as i32);
+            let compressed = compress(packet);
+            let size = varint_write((uncompressed_size.len() + compressed.len()) as i32);
+
+            buf.extend_from_slice(size.as_slice());
+            buf.extend_from_slice(uncompressed_size.as_slice());
+            buf.extend_from_slice(compressed.as_slice());
+
+            pack = buf
         } else {
-            pack = packet;
+            let mut buf: Vec<u8> = Vec::new();
+            let data_length = varint_write(0);
+            let size = varint_write((packet.len() + data_length.len()) as i32);
+
+            buf.extend_from_slice(size.as_slice());
+            buf.extend_from_slice(data_length.as_slice());
+            buf.extend_from_slice(packet.as_slice());
+
+            pack = buf;
         }
 
         send(sock, pack.as_slice());
@@ -166,7 +184,13 @@ pub fn offline_login(ip: String, port: u16){
     let play_receive = |sock: &mut TcpStream| -> (Vec<u8>, i32) { // same perpous as play_send, to reduce amount of code needed to be writen
         let (mut packet, id) = read_packet(sock);
         if compression {
+            let (uncompressed_size, size) = varint_read(&packet);
+            packet = packet[size..packet.len()].to_vec();
             packet = decompress(packet);
+
+            if packet.len() != uncompressed_size as usize{
+                panic!("uncompressed packet size ({}) is not what it should be ({}) [play_receive]", packet.len(), uncompressed_size)
+            }
         }
         (packet, id)
     };

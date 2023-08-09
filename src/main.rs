@@ -52,7 +52,8 @@ fn varint_from_stream(stream: &mut TcpStream) -> i32{
             break
         }
 
-        data = data | ((buff[0] & 0x7F) << 7 * i) as i32;
+        let byte = buff[0] as i64;
+        data = data | ((byte & 0x7F) << (7 * i)) as i32;
 
         if buff[0] & 0x80 == 0{
             break
@@ -88,6 +89,7 @@ fn connect(ip: &String, port: &u32) -> TcpStream{
     return sock
 }
 
+// todo: make it so that the ping is added to the json
 pub fn get_status(ip: String, port: u16){
     let mut sock = connect(&ip, &(port as u32));
 
@@ -107,26 +109,17 @@ pub fn get_status(ip: String, port: u16){
 pub fn offline_login(ip: String, port: u16){
     let mut compression = false;
     let mut compression_size = 0;
-    let mut encryption = false;
+    //let mut encryption = false; // todo: check if encryption is only active on online mode servers
 
     let mut sock = connect(&ip, &(port as u32));
 
     send(&mut sock, packets::handshake(763, ip, port, "login".to_string()).as_slice());
     send(&mut sock, packets::login_start("rust_bot".to_string()).as_slice());
 
-    let mut n = 0;
-    //Todo: figure out why we are getting the "Internal Exception: io.netty.handler.codec.DecoderException: java.io.IOException: Bad packet id 114" disconnect
-    //idea: must be due to login_start somehow, the first packet of the loop is the disconnect
+
     loop{
         let (mut packet, id) = read_packet(&mut sock);
 
-        println!("{} id: {}", n, id);
-        n += 1;
-
-        /*
-        TODO:
-            add encryption to login
-         */
         if compression{
             packet = decompress(packet);
         }
@@ -134,6 +127,7 @@ pub fn offline_login(ip: String, port: u16){
             println!("disconnected, reason: {}", packets::login_disconnect(&packet));
             exit(0);
         } else if id == 0x1{ // encryption request
+            // todo: add encryption to login
             println!("Error, no support for encryption at this time");
             exit(1);
         } else if id == 0x3 { // set compression

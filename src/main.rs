@@ -195,8 +195,17 @@ pub fn offline_login(ip: String, port: u16){
         (packet, id)
     };
 
-    loop{ // main play mode loop
+    // data we will want to track
+    let mut entities: Vec<(i32, String, (f64, f64, f64, i32, i32, i32), i16, (i32, i32, i32))> = Vec::new(); // entity ID, {uuid will be here}, Type, (position x/y/x, pitch, yaw, head yaw), object id, (velocity x/y/z)
 
+    // todo: work on play mode packets
+    loop{ // main play mode loop
+        let (packet, id) = play_receive(&mut sock);
+
+        // todo: add pack bundles (packet id 0)
+        if id == 1{
+
+        }
     }
 }
 

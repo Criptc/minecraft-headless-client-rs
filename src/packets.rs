@@ -75,6 +75,139 @@ fn write_string(data: String) -> Vec<u8>{
     buff
 }
 
+// todo: find a way to automatically get the ideas for each version
+// yes i did all this by hand, took an hour
+fn entity_id_to_string(id: i32) -> String{
+    match id {
+        0 => "allay",
+        1 => "Area effect cloud",
+        2 => "Armor stand",
+        3 => "Arrow",
+        4 => "Axolotl",
+        5 => "Bat",
+        6 => "Bee",
+        7 => "Blaze",
+        8 => "Block display",
+        9 => "Boat",
+        10 => "Camel",
+        11 => "Cat",
+        12 => "Cave Spider",
+        13 => "Chest Boat",
+        14 => "Chest Minecart",
+        15 => "Chicken",
+        16 => "Cod",
+        17 => "Command Block Minecart",
+        18 => "Cow",
+        19 => "Creeper",
+        20 => "Dolphin",
+        21 => "Donkey",
+        22 => "Dragon Fireball",
+        23 => "Drowned",
+        24 => "Egg",
+        25 => "Elder Guardian",
+        26 => "End Crystal",
+        27 => "Ender Dragon",
+        28 => "Ender Pearl",
+        29 => "Enderman",
+        30 => "Endermite",
+        31 => "Evoker",
+        32 => "Evoker Fangs",
+        33 => "Experience Bottle",
+        34 => "Experience Orb",
+        35 => "Eye of Ender",
+        36 => "Falling block",
+        37 => "Firework Rocket",
+        38 => "Fox",
+        39 => "Frog",
+        40 => "Furnace Minecart",
+        41 => "Ghast",
+        42 => "Giant",
+        43 => "Glowing Item Frame", // is actually "Glow item frame" but "Glowing item frame" sounds better
+        44 => "Glow Squid",
+        45 => "Goat",
+        46 => "Guardian",
+        47 => "Hoglin",
+        48 => "Hopper Minecart",
+        49 => "Horse",
+        50 => "Husk",
+        51 => "Illusioner",
+        52 => "Interaction", // why is an interaction an entity?
+        53 => "Iron Golem",
+        54 => "Item",
+        55 => "Item Display",
+        56 => "Item Frame",
+        57 => "Fireball",
+        58 => "Leash Knot",
+        59 => "Lightning Bolt",
+        60 => "Llama",
+        61 => "Llama Spit",
+        62 => "Magma Cube",
+        63 => "Marker",
+        64 => "Minecraft",
+        65 => "Mooshroom",
+        66 => "Mule",
+        67 => "Ocelot",
+        68 => "Painting",
+        69 => "Panda", // Nice
+        70 => "Parrot",
+        71 => "Phantom",
+        72 => "Pig",
+        73 => "Piglin",
+        74 => "Piglin Brute",
+        75 => "Pillager",
+        76 => "Polar Bear",
+        77 => "Potion", // thrown potion?
+        78 => "Pufferfish",
+        79 => "Rabbit",
+        80 => "Ravager",
+        81 => "Salmon",
+        82 => "Sheep",
+        83 => "Shulker",
+        84 => "Shulker Bullet",
+        85 => "Silverfish bullet",
+        86 => "Skeleton",
+        87 => "Skeleton Horse",
+        88 => "Slime",
+        89 => "Small Fireball",
+        90 => "Sniffer",
+        91 => "Snow Golem",
+        92 => "Snowball",
+        93 => "Spawner Minecart",
+        94 => "Spectral Arrow",
+        95 => "Spider",
+        96 => "Squid",
+        97 => "Stray",
+        98 => "Strider",
+        99 => "Tadpole",
+        100 => "Text Display",
+        101 => "Tnt",
+        102 => "Tnt Minecart",
+        103 => "Trader Llama",
+        104 => "Trident",
+        105 => "Tropical Fish",
+        106 => "Turtle",
+        107 => "Vex",
+        108 => "Villager",
+        109 => "Vindicator",
+        110 => "Wandering Trader",
+        111 => "Warden",
+        112 => "Witch",
+        113 => "Wither",
+        114 => "Wither Skeleton",
+        115 => "Wither Skull",
+        116 => "Wolf",
+        117 => "Zoglin",
+        118 => "Zombie",
+        119 => "Zombie Horse",
+        120 => "Zombie Villager",
+        121 => "Zombified Piglin",
+        122 => "Player",
+        123 => "Fishing Bobber",
+    }
+}
+
+// packets we send
+
 pub fn handshake(protocol: i32, server_addr: String, server_port: u16, next_state: String) -> Vec<u8>{
     if next_state.to_lowercase() != "status" && next_state.to_lowercase() != "login"{
         panic!("error: next_state on handshake packet must be 'status' or 'login', not: {}", next_state.to_lowercase());
@@ -202,3 +335,21 @@ pub fn ping_response(packet: &Vec<u8>) -> String{
         format!("ping: {}", now-epoch)
     }
 }
+
+pub fn spawn_entity(packet: Vec<u8>){
+    let mut data = packet;
+
+    let (entity_id, size) = varint_read(data);
+    data = data[size..data.len()];
+
+    // todo: add uuid support
+    data = data[16..data.len()];
+
+    let (entity_type_raw, size) = varint_read(data);
+    let entity_type = entity_id_to_string(entity_id);
+    data = data[size..data.len()];
+
+    
+}
+
+

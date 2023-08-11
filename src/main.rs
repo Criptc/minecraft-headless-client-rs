@@ -198,9 +198,11 @@ pub fn offline_login(ip: String, port: u16){
     };
 
     // data we will want to track
-    // todo: add uuid support (again)
-    let mut entities: Vec<(i32, String, (f64, f64, f64, i32, i32, i32), i32, (i16, i16, i16))> = Vec::new(); // entity ID, {uuid will be here}, Type, (position x/y/x, pitch, yaw, head yaw), object id, (velocity x/y/z)
-    let players: Vec<(i32, (f64, f64, f64), (i16, i16))> = Vec::new();
+    // todo:
+    //  add uuid support and turn uuids into player names
+    //  figure out how to handle blocks and block states
+    let mut entities: Vec<(i32, String, (f64, f64, f64, i8, i8, i8), i32, (i16, i16, i16))> = Vec::new(); // entity ID, {uuid will be here}, Type, (position x/y/x, pitch, yaw, head yaw), object id, (velocity x/y/z)
+    let mut players: Vec<(i32, (f64, f64, f64), (i8, i8))> = Vec::new();
 
     // todo: work on play mode packets
     loop{ // main play mode loop
@@ -209,15 +211,24 @@ pub fn offline_login(ip: String, port: u16){
         // todo:
         //  add pack bundles 0x0
         //  add spawn exp orb 0x2
+        //  Award Statistics 0x5
+        //  Acknowledge block state 0x6
+        //  Set Block destroy stage 0x7
         match id{
             0x1 => {
                 // so messy but dammit it works
                 let (e_id, e_name, (x, y, z, pitch, yaw, h_yaw), data, (vel_x, vel_y, vel_z)) = packets::spawn_entity(packet);
-                println!("new entity: \nname: {}\nid: {}\npostion: {}, {}, {}", e_name, e_id, x, y, z);
-                entities.append(&mut vec!((e_id, e_name, (x, y, z, pitch, yaw, h_yaw), data, (vel_x, vel_y, vel_z))))
+                println!("new entity, name: {}\nid: {}\nposition: {}, {}, {}", e_name, e_id, x, y, z);
+                entities.append(&mut vec!((e_id, e_name, (x, y, z, pitch, yaw, h_yaw), data, (vel_x, vel_y, vel_z))));
             },
             0x3 => {
-
+                let (e_id, (x, y, z), (yaw, pitch)) = packets::spawn_player(&packet);
+                println!("new player, ID: {}\nposition: {}, {}, {}", e_id, x, y, z);
+                players.append(&mut vec!((e_id, (x, y, z), (yaw, pitch))));
+            },
+            0x4 => {
+                let (e_id, animation) = packets::entity_animation(&packet);
+                println!("play with id {} played the {} animation", e_id, animation);
             },
             _ => {
                 println!("unknown packet, id: {}", id);

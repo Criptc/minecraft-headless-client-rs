@@ -337,36 +337,36 @@ pub fn ping_response(packet: &Vec<u8>) -> String{
     }
 }
 
-pub fn spawn_entity(packet: Vec<u8>) -> (i32, String, (f64, f64, f64, i32, i32, i32), i32, (i16, i16, i16)){
+pub fn spawn_entity(packet: &Vec<u8>) -> (i32, String, (f64, f64, f64, i8, i8, i8), i32, (i16, i16, i16)){
     let mut data = packet;
 
-    let (entity_id, size) = varint_read(&data);
-    data = data[size..data.len()].to_vec();
+    let (entity_id, size) = varint_read(data);
+    data = &data[size..data.len()].to_vec();
 
     // todo: add uuid support
-    data = data[16..data.len()].to_vec();
+    data = &data[16..data.len()].to_vec();
 
-    let (entity_type_raw, size) = varint_read(&data);
+    let (entity_type_raw, size) = varint_read(data);
     let entity_type = entity_id_to_string(entity_type_raw);
-    data = data[size..data.len()].to_vec();
+    data = &data[size..data.len()].to_vec();
 
     let x = f64::from_be_bytes(data[0..8].try_into().unwrap());
     let y = f64::from_be_bytes(data[8..16].try_into().unwrap());
     let z = f64::from_be_bytes(data[16..24].try_into().unwrap());
-    data = data[24..data.len()].to_vec();
+    data = &data[24..data.len()].to_vec();
 
-    // todo: figure out if the Angle, Yaw, and Head Yaw types are i32, i64, varint, etc
-    let (pitch, size) = varint_read(&data);
-    data = data[size..data.len()].to_vec();
 
-    let (yaw, size) = varint_read(&data);
-    data = data[size..data.len()].to_vec();
+    let pitch = data[0..1][0] as i8;
+    data = &data[1..data.len()].to_vec();
 
-    let (head_yaw, size) = varint_read(&data);
-    data = data[size..data.len()].to_vec();
+    let yaw = data[0..1][0] as i8;
+    data = &data[1..data.len()].to_vec();
+
+    let head_yaw = data[0..1][0] as i8;
+    data = &data[1..data.len()].to_vec();
 
     let (entity_data, size) = varint_read(&data);
-    data = data[size..data.len()].to_vec();
+    data = &data[size..data.len()].to_vec();
 
     let velocity_x = i16::from_be_bytes(data[0..2].try_into().unwrap());
     let velocity_y = i16::from_be_bytes(data[2..4].try_into().unwrap());
@@ -376,25 +376,41 @@ pub fn spawn_entity(packet: Vec<u8>) -> (i32, String, (f64, f64, f64, i32, i32, 
 }
 
 // todo: add uuid support
-pub fn spawn_player(packet: Vec<u8>) -> (i32, (f64, f64, f64), (i32, i32)){
+pub fn spawn_player(packet: &Vec<u8>) -> (i32, (f64, f64, f64), (i8, i8)){
     let mut data = packet;
 
     let (entity_id, size) = varint_read(&data);
-    data = data[size..data.len()].to_vec();
+    data = &data[size..data.len()].to_vec();
 
-    data = data[16..data.len()].to_vec();
+    data = &data[16..data.len()].to_vec();
 
     let x = f64::from_be_bytes(data[0..8].try_into().unwrap());
     let y = f64::from_be_bytes(data[8..16].try_into().unwrap());
     let z = f64::from_be_bytes(data[16..24].try_into().unwrap());
-    data = data[24..data.len()].to_vec();
+    data = &data[24..data.len()].to_vec();
 
-    // todo: figure out if the Angle, Yaw, and Head Yaw types are i32, i64, varint, etc
-    let (yaw, size) = varint_read(&data);
-    data = data[size..data.len()].to_vec();
+    let yaw = data[0..1][0] as i8;
+    data = &data[1..data.len()].to_vec();
 
-    let (pitch, size) = varint_read(&data);
-    data = data[size..data.len()].to_vec();
+    let pitch = data[0..1][0] as i8;
+    data = &data[1..data.len()].to_vec();
 
     (entity_id, (x, y, z), (yaw, pitch))
+}
+
+pub fn entity_animation(packet: &Vec<u8>) -> (i32, String){
+    let (e_ie, size) = varint_read(packet);
+    let animation_byte = packet[size..size+1][0] as i8;
+
+    let animation = match animation_byte{
+        0 => "Swing main arm",
+        1 => "Take Damage",
+        2 => "Leave Bed",
+        3 => "Swing offhand",
+        4 => "Critical effect",
+        5 => "Magic Critical effect (?)",
+        _ => "Unknown"
+    }.to_string();
+
+    (e_ie, animation)
 }

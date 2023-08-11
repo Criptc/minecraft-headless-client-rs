@@ -1,3 +1,5 @@
+mod packets;
+
 use {
     flate2,
     std::{
@@ -10,12 +12,12 @@ use {
         },
         process::exit,
     },
-    crate::packets::{
-        *,
+    packets::{
         varint_read,
         varint_write
     }
 };
+
 
 fn compress(data: Vec<u8>) -> Vec<u8>{
     let mut buf: Vec<u8> = Vec::new();
@@ -196,15 +198,30 @@ pub fn offline_login(ip: String, port: u16){
     };
 
     // data we will want to track
-    let mut entities: Vec<(i32, String, (f64, f64, f64, i32, i32, i32), i16, (i32, i32, i32))> = Vec::new(); // entity ID, {uuid will be here}, Type, (position x/y/x, pitch, yaw, head yaw), object id, (velocity x/y/z)
+    // todo: add uuid support (again)
+    let mut entities: Vec<(i32, String, (f64, f64, f64, i32, i32, i32), i32, (i16, i16, i16))> = Vec::new(); // entity ID, {uuid will be here}, Type, (position x/y/x, pitch, yaw, head yaw), object id, (velocity x/y/z)
+    let players: Vec<(i32, (f64, f64, f64), (i16, i16))> = Vec::new();
 
     // todo: work on play mode packets
     loop{ // main play mode loop
         let (packet, id) = play_receive(&mut sock);
 
-        // todo: add pack bundles (packet id 0)
-        if id == 1{
+        // todo:
+        //  add pack bundles 0x0
+        //  add spawn exp orb 0x2
+        match id{
+            0x1 => {
+                // so messy but dammit it works
+                let (e_id, e_name, (x, y, z, pitch, yaw, h_yaw), data, (vel_x, vel_y, vel_z)) = packets::spawn_entity(packet);
+                println!("new entity: \nname: {}\nid: {}\npostion: {}, {}, {}", e_name, e_id, x, y, z);
+                entities.append(&mut vec!((e_id, e_name, (x, y, z, pitch, yaw, h_yaw), data, (vel_x, vel_y, vel_z))))
+            },
+            0x3 => {
 
+            },
+            _ => {
+                println!("unknown packet, id: {}", id);
+            }
         }
     }
 }

@@ -217,7 +217,7 @@ pub fn offline_login(ip: String, port: u16){
         match id{
             0x1 => {
                 // so messy but dammit it works
-                let (e_id, e_name, (x, y, z, pitch, yaw, h_yaw), data, (vel_x, vel_y, vel_z)) = packets::spawn_entity(packet);
+                let (e_id, e_name, (x, y, z, pitch, yaw, h_yaw), data, (vel_x, vel_y, vel_z)) = packets::spawn_entity(&packet);
                 println!("new entity, name: {}\nid: {}\nposition: {}, {}, {}", e_name, e_id, x, y, z);
                 entities.append(&mut vec!((e_id, e_name, (x, y, z, pitch, yaw, h_yaw), data, (vel_x, vel_y, vel_z))));
             },
